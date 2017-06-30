@@ -1,0 +1,19 @@
+{
+  "name": "kindlewebconvert",
+  "version": "1.0.0",
+  "description": "Converts and sends ebooks to your amazon kindle from the web.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests.\" && exit 1"
+  },
+  "author": "DrDoof",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.15.3",
+    "express-formidable": "^1.0.0",
+    "express-formparse": "^1.0.3",
+    "morgan": "^1.8.2",
+    "nodemailer": "^4.0.1",
+    "pug": "^2.0.0-rc.2"
+  }
+}

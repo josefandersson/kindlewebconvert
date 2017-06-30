@@ -1,0 +1,6 @@
+html
+    h1 Upload
+    form(action="/upload",method="POST",enctype="multipart/form-data")
+        label(for="file") Files
+        input#file(name="books",type="file",multiple)
+        input(type="submit",value="Upload")
