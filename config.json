@@ -1,0 +1,4 @@
+{
+    "databasePath": "./database.sqlite3",
+    "mongoDBURL": "mongodb://localhost:27017/kindlewebconvert"
+}
