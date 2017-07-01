@@ -1,3 +1,7 @@
 html
     h1 Account page
     h4 Hello, #{user.username}.
+    p Books:
+    if books
+        each book in books
+            p #{book.name}

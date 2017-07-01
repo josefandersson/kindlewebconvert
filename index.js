@@ -14,6 +14,7 @@ const server = express();
 
 const sendBook = require('./lib/mailer');
 const { log } = require('./lib/Utils');
+const { addBook, getBooksFor } = require('./lib/BookManager');
 const { createUser, getUser, loginUser } = require('./lib/UserManager');
 
 const config = require('./config.json');
@@ -29,7 +30,7 @@ server.use(express.static(path.join(__dirname, 'public')));
 
 server.use(formparse.parse({
     keepExtensions: true,
-    // hash: 'md5',
+    hash: 'md5',
     multiples: true,
     matching: [ '/upload' ],
 }));
@@ -53,20 +54,32 @@ server.post('/upload', (req, res, next) => {
         req.body.books = [ req.body.books ];
     }
 
+    let callback = successLevel => {
+        log('successLevel', successLevel);
+        if (successLevel > 0) {
+            res.send('Added book.');
+        } else if (successLevel === -1) {
+            res.send('You already have this book.');
+        } else if (successLevel === -2) {
+            res.send('Database error. Could not add book.');
+        }
+    };
+
     for (let i = 0; i < req.body.books.length; i++) {
         file = req.body.books[i];
-        sendBook(()=>{}, {
-            to:'josefandman@gmail.com',
-            attachments: [
-                {
-                    filename: file.name,
-                    path: file.path
-                }
-            ]
-        });
+        addBook(file, req.user, callback);
+        // sendBook(()=>{}, {
+        //     to:'josefandman@gmail.com',
+        //     attachments: [
+        //         {
+        //             filename: file.name,
+        //             path: file.path
+        //         }
+        //     ]
+        // });
     }
 
-    res.send('-');
+    // res.send('-');
 });
 
 server.post('/register/?', (req, res, next) => {
@@ -93,6 +106,14 @@ server.post('/login/?', (req, res, next) => {
     });
 });
 
+server.get('/upload/?', (req, res, next) => {
+    if (req.user) {
+        res.render('upload');
+    } else {
+        res.redirect('/login');
+    }
+});
+
 server.get('/register/?', (req, res, next) => {
     if (req.user) {
         res.redirect('/me');
@@ -115,7 +136,9 @@ server.use('/$', (req, res, next) => {
 
 server.use('/me/?', (req, res, next) => {
     if (req.user) {
-        res.render('me', { user:req.user });
+        getBooksFor(req.user, books => {
+            res.render('me', { user:req.user, books:books });
+        });
     } else {
         res.redirect('/login');
     }
