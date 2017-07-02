@@ -1,7 +1,41 @@
 html
     h1 Account page
-    h4 Hello, #{user.username}.
-    p Books:
+    p Hello, #{user.username}.
+    hr
+    h3 Kindle email
+    if user.kindle_email
+        p Your kindle email is setup.
+    else
+        p You haven't set up your kindle email. Please do so below.
+        form(action="/configure",method="post")
+            p
+                label(for="kindle_email") Kindle email (xxx@kindle.com):
+                input#kindle_email(type="email",name="kindle_email")
+                input(type="submit",value="Save")
+    hr
+    h3 Your book queue
     if books
-        each book in books
-            p #{book.name}
+        table
+            tr
+                th Name
+                th Status
+                th Timestamp
+            
+            each book in books
+                tr
+                    td #{book.name}
+                    if book.isSuccess
+                        td Sent
+                    else if book.failed
+                        td Failed
+                    else if book.stage == 0
+                        td Put in queue
+                    else if book.stage == 1
+                        td Converted
+                    else if book.stage == 2
+                        td Sent to kindle
+                    else
+                        td Unknown
+                    td #{book.done}
+    else
+        h5 You have not uploaded any books yet.

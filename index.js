@@ -12,9 +12,8 @@ const MongoStore = require('connect-mongo')(expressSession);
 
 const server = express();
 
-const sendBook = require('./lib/mailer');
 const { log } = require('./lib/Utils');
-const { addBook, getBooksFor } = require('./lib/BookManager');
+const { queueBook, getQueuedBooksFor } = require('./lib/BookManager');
 const { createUser, getUser, loginUser } = require('./lib/UserManager');
 
 const config = require('./config.json');
@@ -31,7 +30,7 @@ server.use(express.static(path.join(__dirname, 'public')));
 server.use(formparse.parse({
     keepExtensions: true,
     hash: 'md5',
-    multiples: true,
+    //multiples: true,
     matching: [ '/upload' ],
 }));
 
@@ -47,39 +46,16 @@ server.use(expressSession({
     })
 }));
 
-server.use(['/','/register','/login','/upload'], require('./lib/middleware/loggeduser'));
+server.use(['/?','/me/?','/configure/?','/register/?','/login/?','/upload/?'], require('./lib/middleware/loggeduser'));
 
 server.post('/upload', (req, res, next) => {
-    if (!req.body.books.length) {
-        req.body.books = [ req.body.books ];
-    }
-
-    let callback = successLevel => {
-        log('successLevel', successLevel);
-        if (successLevel > 0) {
-            res.send('Added book.');
-        } else if (successLevel === -1) {
-            res.send('You already have this book.');
-        } else if (successLevel === -2) {
-            res.send('Database error. Could not add book.');
+    queueBook(req.body.books, req.user, success => {
+        if (success) {
+            res.send('Your book is being converted and sent to your kindle. Current status can be seen on your user page.');
+        } else {
+            res.send('Something went wrong. Please try again.');
         }
-    };
-
-    for (let i = 0; i < req.body.books.length; i++) {
-        file = req.body.books[i];
-        addBook(file, req.user, callback);
-        // sendBook(()=>{}, {
-        //     to:'josefandman@gmail.com',
-        //     attachments: [
-        //         {
-        //             filename: file.name,
-        //             path: file.path
-        //         }
-        //     ]
-        // });
-    }
-
-    // res.send('-');
+    });
 });
 
 server.post('/register/?', (req, res, next) => {
@@ -104,6 +80,22 @@ server.post('/login/?', (req, res, next) => {
             res.render('login');
         }
     });
+});
+
+server.post('/configure/?', (req, res, next) => {
+    if (req.user) {
+        req.user.kindle_email = req.body.kindle_email;
+        req.user.save(err => {
+            if (err) {
+                log('MongoDB error', err);
+            } else {
+                log('Configured user', req.user.username);
+            }
+            res.redirect('/me');
+        });
+    } else {
+        res.redirect('/login');
+    }
 });
 
 server.get('/upload/?', (req, res, next) => {
@@ -136,8 +128,8 @@ server.use('/$', (req, res, next) => {
 
 server.use('/me/?', (req, res, next) => {
     if (req.user) {
-        getBooksFor(req.user, books => {
-            res.render('me', { user:req.user, books:books });
+        getQueuedBooksFor(req.user, queuedBooks => {
+            res.render('me', { user:req.user, books:queuedBooks });
         });
     } else {
         res.redirect('/login');
